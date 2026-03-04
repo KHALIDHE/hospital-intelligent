@@ -36,10 +36,11 @@ INSTALLED_APPS = [
     'corsheaders',
     # Our apps
     'users',
+    'authentication',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware'
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -120,3 +121,4 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 AUTH_USER_MODEL = 'users.User'
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
