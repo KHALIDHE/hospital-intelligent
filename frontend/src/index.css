@@ -1,0 +1,60 @@
+
+/* ============================================================
+   src/index.css
+   ============================================================
+   This file loads Tailwind CSS into your entire React app.
+   It is imported in main.jsx so it applies to every page.
+
+   WHY 3 separate lines?
+   Tailwind is split into 3 layers, each with a specific job.
+   You need all 3 for Tailwind to work properly.
+   ============================================================ */
+
+/* ── LAYER 1: BASE ───────────────────────────────────────────
+   Resets default browser styles so every browser looks the same.
+
+   Every browser has its own default styles:
+     Chrome:  h1 has margin 21px
+     Firefox: h1 has margin 20px
+     Safari:  h1 has margin 19px
+
+   @tailwind base removes all these differences
+   so your app looks the same in every browser.
+
+   Also sets basic defaults like:
+     box-sizing: border-box (padding doesn't break layouts)
+     line-height, font smoothing, etc.
+*/
+@tailwind base;
+
+
+/* ── LAYER 2: COMPONENTS ─────────────────────────────────────
+   Adds pre-built component styles from Tailwind plugins.
+
+   For now we don't use any plugins so this layer is mostly empty.
+   But it must be included so Tailwind's structure works correctly.
+   When you add plugins later (like forms, typography)
+   their styles will be injected here automatically.
+*/
+@tailwind components;
+
+
+/* ── LAYER 3: UTILITIES ──────────────────────────────────────
+   THIS is the main layer — the one you use every day.
+
+   It generates ALL the utility classes you write in className:
+     bg-blue-500   → background color blue
+     p-4           → padding 16px on all sides
+     flex          → display flex
+     text-white    → white text
+     rounded-lg    → border radius
+     shadow-md     → box shadow
+     mt-4          → margin top 16px
+     w-full        → width 100%
+     ... and thousands more
+
+   Tailwind ONLY generates the classes you actually used
+   (based on what it found scanning your files in tailwind.config.js)
+   so the final CSS file stays small and fast.
+*/
+@tailwind utilities;

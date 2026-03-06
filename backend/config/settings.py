@@ -14,6 +14,7 @@ DEBUG = config('DEBUG', cast=bool)
 
 ALLOWED_HOSTS = [
     "http://localhost:5173",
+    '127.0.0.1', 'localhost'
 ]
 
 REST_FRAMEWORK = {
@@ -37,6 +38,11 @@ INSTALLED_APPS = [
     # Our apps
     'users',
     'authentication',
+    'doctors',
+    'patients',
+    'appointments',
+    'nurse',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -122,3 +128,26 @@ STATIC_URL = 'static/'
 
 AUTH_USER_MODEL = 'users.User'
 AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
+CORS_ALLOW_CREDENTIALS = True
+
+
+
+# ── CORS ─────────────────────────────────────────────────────
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# ── JWT ──────────────────────────────────────────────────────
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME':  timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'authentication.authenticate.CookieJWTAuthentication',  # ← reads from cookie
+    ),
+}

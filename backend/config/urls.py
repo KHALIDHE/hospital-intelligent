@@ -20,4 +20,10 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('authentication.urls')),
+    # Doctor routes → profile, patients, generate code, slots
+    path('api/doctors/', include('doctors.urls')),
+    path('api/patients/', include('patients.urls')),
+    path('api/appointments/',include('appointments.urls')),
+    path('api/nurse/', include('nurse.urls')),
+    path('api/notifications/',  include('notifications.urls')), 
 ]
