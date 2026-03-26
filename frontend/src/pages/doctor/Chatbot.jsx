@@ -1,86 +1,307 @@
 // ============================================================
 // src/pages/doctor/Chatbot.jsx
 // ============================================================
-// This is the AI Chatbot page for DOCTORS.
+// Doctor AI Assistant.
 //
-// CURRENT STATUS: Placeholder — waiting for teammate to finish
-// the external chatbot API.
+// RESTRICTIONS (enforced at 3 levels):
+//   Level 1 — UI: only shows doctor-relevant suggestions
+//   Level 2 — Frontend: blocks questions about other doctors/admin data
+//   Level 3 — MCP: only doctor tools available (get_my_patients, etc.)
 //
-// WHAT THIS PAGE WILL DO WHEN READY:
-//   1. Doctor types a question in the chat box
-//   2. React sends the message to Django:
-//      POST /api/chatbot/ → { message: "show my patients" }
-//   3. Django adds context: { role: 'doctor', userId: 'D001' }
-//   4. Django forwards to external chatbot API
-//   5. Chatbot sees role='doctor' → only shows doctor's patients
-//   6. Reply appears in the chat window
+// Doctor CAN ask:
+//   - About their own patients
+//   - About critical/alert patients
+//   - About their appointments/schedule
+//   - General medical questions
 //
-// WHAT DOCTOR CAN ASK:
-//   - "Show me my critical patients"
-//   - "What appointments do I have today?"
-//   - "Show test results for patient P001"
-//   - "Who are my patients in cardiology?"
-//
-// HOW TO ACTIVATE WHEN READY:
-//   1. Replace this placeholder with the real ChatWindow component
-//   2. Import ChatWindow from '../../components/ChatWindow'
-//   3. Replace the placeholder div with <ChatWindow />
-//   4. Make sure /api/chatbot/ endpoint is connected to real API
-//
-// COMPONENT USED: ChatWindow.jsx (already built in components/)
-// API ENDPOINT  : POST /api/chatbot/
-// ACCESS        : Doctor only (enforced by ProtectedRoute in App.jsx)
+// Doctor CANNOT ask:
+//   - About other doctors' patients
+//   - About admin data (staff counts, all patients)
+//   - About OR beds (nurse domain)
+//   - About other users' data
 // ============================================================
 
-import Layout from '../../components/Layout'  // make sure later is .. 
-// Layout wraps every page with Sidebar + Navbar
-// title prop → shown in the top Navbar
+import { useState, useEffect, useRef } from 'react'
+import Layout from '../../components/Layout'
+import { useAuth } from '../../context/AuthContext'
+import api from '../../api/axios'
+
+// ── Role color theme ─────────────────────────────────────────
+const THEME = {
+    primary:    'bg-blue-600',
+    primaryHov: 'hover:bg-blue-700',
+    ring:       'focus:ring-blue-500',
+    chip:       'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-100',
+    avatar:     'bg-blue-600',
+    userBubble: 'bg-blue-600 text-white',
+    label:      'Gemma3:4b · Doctor Mode',
+}
+
+// ── Suggested questions ───────────────────────────────────────
+const SUGGESTIONS = [
+    'Show my patients',
+    'Do I have critical patients?',
+    "What's my schedule today?",
+    'How many patients are in alert status?',
+    'Show all my appointments',
+]
+
+// ── Blocked keywords — questions a doctor should not ask ──────
+// These are admin/nurse domain questions
+const BLOCKED_PATTERNS = [
+    { pattern: /all patients in hospital/i,  reason: 'You can only view your own assigned patients.' },
+    { pattern: /all doctors/i,               reason: 'Staff management is restricted to administrators.' },
+    { pattern: /all nurses/i,                reason: 'Staff management is restricted to administrators.' },
+    { pattern: /hospital statistics/i,        reason: 'Hospital-wide statistics are for administrators only.' },
+    { pattern: /staff count/i,               reason: 'Staff management is restricted to administrators.' },
+    { pattern: /or beds/i,                   reason: 'OR bed management is handled by nursing staff.' },
+    { pattern: /operating room/i,            reason: 'OR bed management is handled by nursing staff.' },
+    { pattern: /other doctor/i,              reason: 'You can only access your own patient records.' },
+]
+
+// ── Check if message is blocked ───────────────────────────────
+function getBlockReason(message) {
+    for (const { pattern, reason } of BLOCKED_PATTERNS) {
+        if (pattern.test(message)) return reason
+    }
+    return null
+}
 
 
 function DoctorChatbot() {
+
+    const { user }                    = useAuth()
+    const [messages,  setMessages]    = useState([])
+    const [input,     setInput]       = useState('')
+    const [loading,   setLoading]     = useState(false)
+    const [fetching,  setFetching]    = useState(true)
+    const [blocked,   setBlocked]     = useState('')
+    const bottomRef                   = useRef(null)
+
+    // Load chat history
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await api.get('/chatbot/history/')
+                setMessages(res.data)
+            } catch (err) {}
+            finally { setFetching(false) }
+        }
+        load()
+    }, [])
+
+    // Auto scroll
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [messages, loading])
+
+    const sendMessage = async () => {
+        if (!input.trim() || loading) return
+
+        const text = input.trim()
+        setInput('')
+        setBlocked('')
+
+        // ── Level 2: Frontend restriction check ──────────────
+        const blockReason = getBlockReason(text)
+        if (blockReason) {
+            setBlocked(blockReason)
+            return
+        }
+
+        // Add user message to UI immediately
+        const userMsg = {
+            id: Date.now(), sender: 'user',
+            message: text, created_at: new Date().toISOString()
+        }
+        setMessages(prev => [...prev, userMsg])
+        setLoading(true)
+
+        try {
+            const res = await api.post('/chatbot/', { message: text })
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1, sender: 'bot',
+                message: res.data.reply, created_at: new Date().toISOString()
+            }])
+        } catch (err) {
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1, sender: 'bot',
+                message: 'Connection error. Please try again.', created_at: new Date().toISOString()
+            }])
+        } finally {
+            setLoading(false) }
+    }
+
+    const clearHistory = async () => {
+        try { await api.delete('/chatbot/clear/'); setMessages([]) } catch (err) {}
+    }
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
+    }
+
     return (
-        // Layout gives us the Sidebar + Navbar automatically
-        // title="AI Assistant" → shown in the top navbar
         <Layout title="AI Assistant">
+            <div className="flex flex-col h-[calc(100vh-8rem)] max-w-3xl mx-auto">
 
-            {/* ── Placeholder container ──────────────────────── */}
-            {/* flex items-center justify-center → centers content */}
-            {/* h-64 → gives the container a fixed height */}
-            <div className="flex items-center justify-center h-64">
-
-                {/* ── Centered content ─────────────────────────── */}
-                <div className="text-center">
-
-                    {/* Robot icon */}
-                    <p className="text-5xl mb-4">🤖</p>
-
-                    {/* Title */}
-                    <h3 className="text-xl font-semibold text-gray-600">
-                        AI Assistant — Coming Soon
-                    </h3>
-
-                    {/* Subtitle */}
-                    <p className="text-gray-400 text-sm mt-2">
-                        This feature is being prepared by the team
-                    </p>
-
-                    {/* Info about what it will do */}
-                    <div className="mt-6 bg-blue-50 border border-blue-100 rounded-xl p-4 text-left max-w-sm mx-auto">
-                        <p className="text-sm font-medium text-blue-700 mb-2">
-                            What you will be able to ask:
-                        </p>
-                        {/* List of example questions */}
-                        <ul className="text-sm text-blue-600 space-y-1">
-                            <li>📋 Show my critical patients</li>
-                            <li>📅 What appointments do I have today?</li>
-                            <li>🧪 Show test results for patient P001</li>
-                            <li>💊 List medications for Ahmed Hassan</li>
-                        </ul>
+                {/* ── Header ───────────────────────────────────── */}
+                <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4 mb-3 flex justify-between items-center shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white text-xs font-bold">AI</div>
+                        <div>
+                            <p className="font-semibold text-gray-800 text-sm">Hospital AI Assistant</p>
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                <p className="text-xs text-gray-400">{THEME.label}</p>
+                            </div>
+                        </div>
                     </div>
-
+                    <div className="flex items-center gap-3">
+                        {/* Role badge */}
+                        <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100">
+                            Doctor Access
+                        </span>
+                        {messages.length > 0 && (
+                            <button onClick={clearHistory}
+                                className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                                Clear
+                            </button>
+                        )}
+                    </div>
                 </div>
-            </div>
 
+                {/* ── Access info banner ───────────────────────── */}
+                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 mb-3 flex items-center gap-2">
+                    <span className="text-blue-500 text-sm">🔒</span>
+                    <p className="text-xs text-blue-600">
+                        <strong>Doctor mode:</strong> Access limited to your assigned patients and appointments only.
+                    </p>
+                </div>
+
+                {/* ── Blocked message warning ───────────────────── */}
+                {blocked && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-3 flex items-start gap-2">
+                        <span className="text-red-500 text-sm mt-0.5">⛔</span>
+                        <div>
+                            <p className="text-xs font-semibold text-red-700">Access Restricted</p>
+                            <p className="text-xs text-red-600 mt-0.5">{blocked}</p>
+                        </div>
+                        <button onClick={() => setBlocked('')}
+                            className="ml-auto text-red-400 hover:text-red-600 text-xs">✕</button>
+                    </div>
+                )}
+
+                {/* ── Messages ─────────────────────────────────── */}
+                <div className="flex-1 overflow-y-auto space-y-3 px-1 py-2">
+
+                    {fetching && (
+                        <div className="flex justify-center py-8">
+                            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    )}
+
+                    {!fetching && messages.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-10 text-center">
+                            <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+                                <span className="text-2xl">👨‍⚕️</span>
+                            </div>
+                            <h3 className="font-semibold text-gray-700 mb-1">Doctor AI Assistant</h3>
+                            <p className="text-sm text-gray-400 max-w-sm mb-5">
+                                Ask me about your patients, today's schedule, or critical alerts.
+                                I have real-time access to your patient records.
+                            </p>
+                            <div className="flex flex-wrap gap-2 justify-center">
+                                {SUGGESTIONS.map(s => (
+                                    <button key={s} onClick={() => setInput(s)}
+                                        className="bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-full border border-blue-100 transition-colors">
+                                        {s}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {messages.map(msg => (
+                        <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            {msg.sender === 'bot' && (
+                                <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center mr-2 mt-1 flex-shrink-0">
+                                    <span className="text-white text-xs font-bold">AI</span>
+                                </div>
+                            )}
+                            <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                                msg.sender === 'user'
+                                    ? 'bg-blue-600 text-white rounded-br-sm'
+                                    : 'bg-white border border-gray-100 text-gray-700 rounded-bl-sm shadow-sm'
+                            }`}>
+                                {msg.message.split('\n').map((line, i) => (
+                                    <p key={i} className={
+                                        line.startsWith('-') ? 'ml-2 mt-1' :
+                                        line.includes('[CRITICAL]') ? 'text-red-600 font-semibold mt-1' :
+                                        i > 0 ? 'mt-1' : ''
+                                    }>{line}</p>
+                                ))}
+                                <p className={`text-xs mt-2 ${msg.sender === 'user' ? 'text-blue-200' : 'text-gray-300'}`}>
+                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+
+                    {loading && (
+                        <div className="flex justify-start">
+                            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center mr-2 flex-shrink-0">
+                                <span className="text-white text-xs font-bold">AI</span>
+                            </div>
+                            <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                                <div className="flex gap-1 items-center h-4">
+                                    {[0, 150, 300].map(delay => (
+                                        <div key={delay} className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                                            style={{ animationDelay: `${delay}ms` }}></div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div ref={bottomRef} />
+                </div>
+
+                {/* ── Input ────────────────────────────────────── */}
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 mt-3 shadow-sm">
+                    {messages.length > 0 && messages.length < 4 && (
+                        <div className="flex gap-2 mb-2 flex-wrap">
+                            {SUGGESTIONS.slice(0, 3).map(s => (
+                                <button key={s} onClick={() => setInput(s)}
+                                    className="bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full border border-gray-200 transition-colors">
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    <div className="flex gap-2">
+                        <textarea
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Ask about your patients, schedule, critical alerts..."
+                            rows={1}
+                            className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 hover:bg-white transition-colors"
+                            style={{ minHeight: '42px', maxHeight: '120px' }}
+                        />
+                        <button onClick={sendMessage}
+                            disabled={!input.trim() || loading}
+                            className="bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 disabled:opacity-50 transition-all self-end">
+                            {loading
+                                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                                  </svg>
+                            }
+                        </button>
+                    </div>
+                    <p className="text-xs text-gray-300 mt-1.5 px-1">Enter to send · Shift+Enter for new line</p>
+                </div>
+
+            </div>
         </Layout>
     )
 }

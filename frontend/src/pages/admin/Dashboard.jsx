@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate }         from 'react-router-dom'
 import Layout from '../../components/Layout'
 import api    from '../../api/axios'
+import StatCard from '../../components/StatCard'
 
 
 function AdminDashboard() {
@@ -84,26 +85,10 @@ function AdminDashboard() {
 
             {/* Stats grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">Total Patients</p>
-                    <p className="text-3xl font-bold text-purple-700 mt-1">{patients.length}</p>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">Today Appointments</p>
-                    <p className="text-3xl font-bold text-blue-600 mt-1">{todayAppts}</p>
-                </div>
-                <div className={`rounded-xl p-5 shadow-sm border ${criticalCount > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">Critical Patients</p>
-                    <p className={`text-3xl font-bold mt-1 ${criticalCount > 0 ? 'text-red-600' : 'text-gray-700'}`}>
-                        {criticalCount}
-                    </p>
-                </div>
-                <div className={`rounded-xl p-5 shadow-sm border ${unreadAlerts > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">Unread Alerts</p>
-                    <p className={`text-3xl font-bold mt-1 ${unreadAlerts > 0 ? 'text-orange-600' : 'text-gray-700'}`}>
-                        {unreadAlerts}
-                    </p>
-                </div>
+                <StatCard icon="🏥" label="Total Patients"      value={patients.length}  color="purple" />
+                <StatCard icon="📅" label="Today Appointments"  value={todayAppts}       color="blue"   />
+                <StatCard icon="⚠️" label="Critical Patients"   value={criticalCount}    color={criticalCount > 0 ? 'red' : 'green'} />
+                <StatCard icon="🔔" label="Unread Alerts"       value={unreadAlerts}     color={unreadAlerts > 0 ? 'yellow' : 'gray'} />
             </div>
 
             {/* Patient status breakdown + recent appointments */}

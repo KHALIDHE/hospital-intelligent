@@ -6,4 +6,5 @@ urlpatterns = [
     path('my-patients/',    views.DoctorPatientsView.as_view()),   # GET
     path('generate-code/',  views.GeneratePatientCodeView.as_view()), # POST
     path('slots/',          views.DoctorSlotsView.as_view()),      # GET
+    path('all/',            views.AllDoctorsView.as_view()),
 ]

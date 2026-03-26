@@ -1,66 +1,57 @@
 // ============================================================
-// src/components/Layout.jsx
+// src/components/Layout.jsx — HOSPITAL REDESIGN
 // ============================================================
-// Main layout wrapper used by EVERY page after login.
-// Combines Sidebar + Navbar + page content in one structure.
+// Main layout wrapper used by ALL authenticated pages.
 //
 // Structure:
-//   ┌──────────────────────────────────┐
-//   │  Sidebar  │  Navbar              │
-//   │           ├──────────────────────│
-//   │  (nav     │  Page content        │
-//   │   menu)   │  (children prop)     │
-//   └──────────────────────────────────┘
+//   ┌──────────────────────────────┐
+//   │ Sidebar (fixed left, dark)  │
+//   │  ┌───────────────────────┐  │
+//   │  │ Navbar (top, white)   │  │
+//   │  ├───────────────────────┤  │
+//   │  │ Page content (scroll) │  │
+//   │  └───────────────────────┘  │
+//   └──────────────────────────────┘
 //
-// HOW to use it in any page:
-//   import Layout from '../../components/Layout'
+// Usage:
+//   <Layout title="Dashboard">
+//     <YourPageContent />
+//   </Layout>
 //
-//   export default function AnyPage() {
-//     return (
-//       <Layout title="My Page Title">
-//         <div>your page content here</div>
-//       </Layout>
-//     )
-//   }
-//
-// PROPS:
-//   title    → shown in the top Navbar e.g. "Dashboard"
-//   children → the page content rendered in the main area
+// The `title` prop shows in the navbar breadcrumb.
 // ============================================================
 
 import Sidebar from './Sidebar'
 import Navbar  from './Navbar'
 
-
-function Layout({ title, children }) {
+function Layout({ children, title = 'Dashboard' }) {
     return (
-        // ── Full screen flex row layout ───────────────────────
-        // h-screen     → takes full screen height
-        // overflow-hidden → prevents double scrollbars
-        // bg-gray-50   → light gray background for all pages
-        <div className="flex h-screen bg-gray-50 overflow-hidden">
+        // ── Full viewport flex row ─────────────────────────────
+        // Sidebar on left, main content on right
+        <div className="flex h-screen overflow-hidden bg-slate-50">
 
-            {/* ── LEFT: Sidebar navigation menu ──────────────── */}
-            {/* Sidebar reads user role from AuthContext */}
-            {/* and shows the correct menu items automatically */}
+            {/* ── Fixed left sidebar ──────────────────────────── */}
+            {/* Width = 256px (w-64), never shrinks */}
             <Sidebar />
 
-            {/* ── RIGHT: Navbar + Page content ───────────────── */}
-            {/* flex-1 → takes all remaining horizontal space */}
-            {/* flex flex-col → stack navbar on top, content below */}
+            {/* ── Right side: Navbar + scrollable content ──────── */}
+            {/* Takes all remaining width with flex column */}
             <div className="flex-1 flex flex-col overflow-hidden">
 
-                {/* Top navbar with page title + notifications + logout */}
-                {/* title prop is passed down to Navbar */}
+                {/* ── Top navbar — fixed height h-14 ───────────── */}
                 <Navbar title={title} />
 
-                {/* ── Page content area ──────────────────────── */}
-                {/* overflow-y-auto → this area scrolls vertically */}
-                {/* p-6 → padding around all content */}
-                {/* flex-1 → takes all remaining vertical space */}
-                <main className="flex-1 overflow-y-auto p-6">
-                    {/* children = everything inside <Layout>...</Layout> */}
-                    {children}
+                {/* ── Scrollable page content ───────────────────── */}
+                {/* overflow-y-auto allows page to scroll           */}
+                {/* The subtle dot pattern gives medical texture     */}
+                <main className="flex-1 overflow-y-auto p-6 medical-pattern">
+
+                    {/* ── Content wrapper with fade-in ─────────── */}
+                    {/* max-w keeps content readable on large screens */}
+                    <div className="max-w-7xl mx-auto fade-in">
+                        {children}
+                    </div>
+
                 </main>
 
             </div>

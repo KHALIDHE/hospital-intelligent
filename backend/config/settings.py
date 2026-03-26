@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'appointments',
     'nurse',
     'notifications',
+    'chatbot',
 ]
 
 MIDDLEWARE = [

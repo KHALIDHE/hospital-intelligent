@@ -1,60 +1,155 @@
-
 /* ============================================================
    src/index.css
    ============================================================
-   This file loads Tailwind CSS into your entire React app.
-   It is imported in main.jsx so it applies to every page.
-
-   WHY 3 separate lines?
-   Tailwind is split into 3 layers, each with a specific job.
-   You need all 3 for Tailwind to work properly.
+   Global styles for Hôpital Intelligent.
+   
+   Design direction: Clinical Precision
+   - Deep navy + crisp white + blue accents
+   - DM Sans for body (clean, medical feel)
+   - DM Serif Display for headlines (authoritative)
+   - Subtle grid pattern background
+   - Fade-in animations for page loads
    ============================================================ */
 
-/* ── LAYER 1: BASE ───────────────────────────────────────────
-   Resets default browser styles so every browser looks the same.
+/* ── Fonts — MUST be first ───────────────────────────────── */
+/* DM Sans: clean modern body font                           */
+/* DM Serif Display: elegant headline font                   */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display&display=swap');
 
-   Every browser has its own default styles:
-     Chrome:  h1 has margin 21px
-     Firefox: h1 has margin 20px
-     Safari:  h1 has margin 19px
-
-   @tailwind base removes all these differences
-   so your app looks the same in every browser.
-
-   Also sets basic defaults like:
-     box-sizing: border-box (padding doesn't break layouts)
-     line-height, font smoothing, etc.
-*/
 @tailwind base;
-
-
-/* ── LAYER 2: COMPONENTS ─────────────────────────────────────
-   Adds pre-built component styles from Tailwind plugins.
-
-   For now we don't use any plugins so this layer is mostly empty.
-   But it must be included so Tailwind's structure works correctly.
-   When you add plugins later (like forms, typography)
-   their styles will be injected here automatically.
-*/
 @tailwind components;
-
-
-/* ── LAYER 3: UTILITIES ──────────────────────────────────────
-   THIS is the main layer — the one you use every day.
-
-   It generates ALL the utility classes you write in className:
-     bg-blue-500   → background color blue
-     p-4           → padding 16px on all sides
-     flex          → display flex
-     text-white    → white text
-     rounded-lg    → border radius
-     shadow-md     → box shadow
-     mt-4          → margin top 16px
-     w-full        → width 100%
-     ... and thousands more
-
-   Tailwind ONLY generates the classes you actually used
-   (based on what it found scanning your files in tailwind.config.js)
-   so the final CSS file stays small and fast.
-*/
 @tailwind utilities;
+
+/* ── Design Tokens ───────────────────────────────────────── */
+/* All colors defined here — change once, updates everywhere */
+:root {
+  /* Navy palette — main brand color */
+  --navy:        #0a1628;   /* darkest — used for sidebar bg */
+  --navy-mid:    #112240;   /* mid — used for sidebar hover  */
+  --navy-light:  #1e3a5f;   /* lighter — used for borders    */
+
+  /* Blue accent — interactive elements */
+  --blue:        #2563eb;
+  --blue-light:  #3b82f6;
+  --blue-glow:   rgba(37, 99, 235, 0.15);
+
+  /* Neutral surfaces */
+  --white:       #ffffff;
+  --off-white:   #f8fafc;   /* page background */
+  --border:      #e2e8f0;   /* card borders    */
+
+  /* Typography */
+  --text:        #0f172a;   /* primary text   */
+  --text-muted:  #64748b;   /* secondary text */
+  --text-faint:  #94a3b8;   /* placeholder    */
+
+  /* Status colors — used for patient status badges */
+  --success:  #059669;   /* stable   */
+  --warning:  #d97706;   /* alert    */
+  --danger:   #dc2626;   /* critical */
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
+}
+
+/* ── Reset ───────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Base body styles ────────────────────────────────────── */
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--off-white);
+  color: var(--text);
+  -webkit-font-smoothing:  antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+/* ── Scrollbar — thin and minimal ───────────────────────── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Global transitions ──────────────────────────────────── */
+/* Smooth color changes on all elements */
+*, *::before, *::after {
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+/* Interactive elements get all transitions */
+a, button { transition: all 0.2s ease; }
+
+/* ── Focus ring — accessibility ──────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--blue-light);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Medical grid pattern ────────────────────────────────── */
+/* Subtle dotted grid used as page background texture        */
+/* Applied via className="medical-pattern"                   */
+.medical-pattern {
+  background-image:
+    radial-gradient(circle, rgba(37,99,235,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ── Blue glow ───────────────────────────────────────────── */
+/* Applied to active sidebar items and key cards             */
+.blue-glow {
+  box-shadow: 0 0 24px rgba(37, 99, 235, 0.25);
+}
+
+/* ── Headline font utility ───────────────────────────────── */
+/* Apply to any heading that should use DM Serif Display     */
+.font-serif-display {
+  font-family: 'DM Serif Display', serif;
+}
+
+/* ── Fade in animations ──────────────────────────────────── */
+/* Staggered reveals for dashboard load                      */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* Base fade — instant */
+.fade-in   { animation: fadeInUp 0.4s ease forwards; }
+
+/* Staggered delays — use on dashboard cards */
+.fade-in-1 { animation: fadeInUp 0.5s ease 0.05s both; }
+.fade-in-2 { animation: fadeInUp 0.5s ease 0.10s both; }
+.fade-in-3 { animation: fadeInUp 0.5s ease 0.15s both; }
+.fade-in-4 { animation: fadeInUp 0.5s ease 0.20s both; }
+.fade-in-5 { animation: fadeInUp 0.5s ease 0.25s both; }
+
+/* ── Pulse dot — for "online" status indicators ──────────── */
+/* Used in chatbot header and notification bell              */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1;   transform: scale(1);    }
+  50%       { opacity: 0.5; transform: scale(1.3);  }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* ── Glass card effect ───────────────────────────────────── */
+/* Semi-transparent cards used over image backgrounds        */
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ── Status badge colors ─────────────────────────────────── */
+/* Used across all patient status displays                   */
+.status-stable   { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.status-alert    { background: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
+.status-critical { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }

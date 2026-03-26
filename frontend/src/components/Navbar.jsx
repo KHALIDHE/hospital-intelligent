@@ -1,79 +1,77 @@
 // ============================================================
-// src/components/Navbar.jsx
+// src/components/Navbar.jsx — HOSPITAL REDESIGN
 // ============================================================
-// This is the TOP bar that appears on every page after login.
+// Top navigation bar inside the main layout.
+// Shows: breadcrumb / page title + notification bell + role badge
 //
-// What it shows:
-//   Left  → current page title (passed as a prop)
-//   Right → notification bell + user name + logout button
-//
-// HOW to use it in any page:
-//   import Navbar from '../../components/Navbar'
-//   <Navbar title="Dashboard" />
-//   <Navbar title="My Patients" />
+// Design: white bar with subtle shadow
+//   Left  → breadcrumb: "Hôpital Intelligent / Page Title"
+//   Right → notifications + role badge + email
 // ============================================================
 
-import { useAuth } from '../context/AuthContext'
-import NotificationBell from './NotificationBell'
+import { useAuth }       from '../context/AuthContext'
+import NotificationBell  from './NotificationBell'
+
+// ── Role badge colors ─────────────────────────────────────────
+// Each role has its own colored badge in the top-right
+const ROLE_BADGE_COLORS = {
+    doctor:  'bg-blue-50 text-blue-700 border border-blue-200',
+    nurse:   'bg-teal-50 text-teal-700 border border-teal-200',
+    admin:   'bg-violet-50 text-violet-700 border border-violet-200',
+    patient: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+}
 
 
 function Navbar({ title }) {
 
-    // ── GET USER AND LOGOUT FUNCTION ──────────────────────────
-    // user.email shown in the top right
-    // logout() called when user clicks logout button
-    const { user, logout } = useAuth()
-
+    const { user } = useAuth()
 
     return (
-        // ── Navbar container ──────────────────────────────────
-        // White background, bottom border, flex row layout
-        // px-6 py-3 = horizontal and vertical padding
-        // shadow-sm = subtle shadow to separate from content
-        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
+        // ── Navbar container ───────────────────────────────────
+        // White background, subtle bottom shadow
+        // h-14 matches the sidebar header height
+        <div className="h-14 bg-white border-b border-slate-100 px-6
+            flex items-center justify-between flex-shrink-0"
+            style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.04)' }}>
 
-            {/* ── LEFT SIDE — Page title ──────────────────────── */}
-            <h2 className="text-lg font-semibold text-gray-700">
-                {/* title prop passed from the page component */}
-                {/* e.g. "Dashboard", "My Patients", "OR Beds" */}
-                {title}
-            </h2>
+            {/* ── LEFT: Breadcrumb + page title ──────────────── */}
+            <div className="flex items-center gap-2">
 
-            {/* ── RIGHT SIDE — Notifications + User + Logout ──── */}
-            <div className="flex items-center gap-4">
+                {/* Breadcrumb prefix — hidden on mobile */}
+                <span className="text-slate-300 text-sm hidden sm:block">
+                    Hôpital Intelligent
+                </span>
 
-                {/* Notification bell with unread count badge */}
-                {/* This is a separate component — see NotificationBell.jsx */}
+                {/* Breadcrumb separator */}
+                <svg className="w-3 h-3 text-slate-300 hidden sm:block" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                </svg>
+
+                {/* Current page title */}
+                <h1 className="text-sm font-semibold text-slate-700">{title}</h1>
+            </div>
+
+
+            {/* ── RIGHT: Actions row ─────────────────────────── */}
+            <div className="flex items-center gap-3">
+
+                {/* Notification bell component */}
                 <NotificationBell />
 
-                {/* ── User info ─────────────────────────────────── */}
-                <div className="flex items-center gap-2">
+                {/* Vertical divider */}
+                <div className="w-px h-5 bg-slate-200"></div>
 
-                    {/* User avatar — circle with first letter of email */}
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
-                        <span className="text-white text-sm font-bold">
-                            {/* First letter of email uppercased */}
-                            {user?.email?.[0]?.toUpperCase()}
-                        </span>
-                    </div>
+                {/* Role badge */}
+                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold
+                    ${ROLE_BADGE_COLORS[user?.role] || ''}`}>
+                    {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+                </span>
 
-                    {/* User email — hidden on small screens */}
-                    <span className="text-sm text-gray-600 hidden md:block">
-                        {user?.email}
-                    </span>
-                </div>
-
-                {/* ── Logout button ─────────────────────────────── */}
-                {/* Calls logout() from AuthContext which:
-                    1. Calls POST /api/auth/logout/ → deletes cookie
-                    2. Clears user from context
-                    3. Redirects to /login */}
-                <button
-                    onClick={logout}
-                    className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
-                >
-                    Logout
-                </button>
+                {/* User email — hidden on small screens */}
+                <span className="text-sm text-slate-600 font-medium hidden md:block">
+                    {user?.email}
+                </span>
 
             </div>
         </div>

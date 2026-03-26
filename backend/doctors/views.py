@@ -294,3 +294,23 @@ class DoctorSlotsView(APIView):
             'doctor':    doctor.full_name,
             'available': available  # e.g. ["08:00", "08:30", "09:30", ...]
         })
+    
+# ── Admin: list ALL doctors ───────────────────────────────────
+class AllDoctorsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Only admin can access this endpoint
+        if request.user.role != 'admin':
+            return Response({'error': 'Forbidden'}, status=403)
+
+        doctors = Doctor.objects.select_related('user').all()
+        data = [{
+            'id':          d.id,
+            'full_name':   d.full_name,
+            'email':       d.user.email,
+            'specialty':   d.specialty,
+            'phone':       d.phone,
+            'departments': d.departments,
+        } for d in doctors]
+        return Response(data)

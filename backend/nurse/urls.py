@@ -23,4 +23,5 @@ urlpatterns = [
 
     # POST /api/nurse/notify-doctor/ → send notification to a doctor
     path('notify-doctor/', views.NotifyDoctorView.as_view()),
+    path('all/',           views.AllNursesView.as_view()),
 ]

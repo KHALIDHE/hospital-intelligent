@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate }         from 'react-router-dom'
 import Layout from '../../components/Layout'
 import api    from '../../api/axios'
+import StatCard from '../../components/StatCard'
 
 
 function PatientDashboard() {
@@ -83,24 +84,9 @@ function PatientDashboard() {
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-400 uppercase">Upcoming Appointments</p>
-                    <p className="text-3xl font-bold text-green-600 mt-1">{upcoming.length}</p>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-400 uppercase">Past Appointments</p>
-                    <p className="text-3xl font-bold text-gray-600 mt-1">{past.length}</p>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-400 uppercase">My Status</p>
-                    <p className={`text-xl font-bold mt-1 ${
-                        patient?.status === 'critical' ? 'text-red-600' :
-                        patient?.status === 'alert'    ? 'text-yellow-600' :
-                        'text-green-600'
-                    }`}>
-                        {patient?.status?.charAt(0).toUpperCase() + patient?.status?.slice(1)}
-                    </p>
-                </div>
+                <StatCard icon="📅" label="Upcoming Appointments" value={upcoming.length} color="green" />
+                <StatCard icon="📋" label="Past Appointments"     value={past.length}     color="gray"  />
+                <StatCard icon="💚" label="My Status"             value={patient?.status?.charAt(0).toUpperCase() + patient?.status?.slice(1)} color={patient?.status === 'critical' ? 'red' : patient?.status === 'alert' ? 'yellow' : 'green'} />
             </div>
 
             {/* Content grid */}

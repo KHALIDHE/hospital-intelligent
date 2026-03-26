@@ -260,3 +260,23 @@ class NotifyDoctorView(APIView):
             'doctor':   doctor.full_name,
             'priority': priority,
         }, status=status.HTTP_201_CREATED)
+    
+# ── Admin: list ALL nurses ────────────────────────────────────
+class AllNursesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Only admin can access
+        if request.user.role != 'admin':
+            return Response({'error': 'Forbidden'}, status=403)
+
+        nurses = Nurse.objects.select_related('user').all()
+        data = [{
+            'id':            n.id,
+            'full_name':     n.full_name,
+            'email':         n.user.email,
+            'phone':         n.phone,
+            'assigned_ward': n.assigned_ward,
+            'shift':         n.shift,
+        } for n in nurses]
+        return Response(data)

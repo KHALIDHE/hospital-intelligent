@@ -22,6 +22,7 @@ import ProtectedRoute      from './router/ProtectedRoute'
 
 // ── AUTH ──────────────────────────────────────────────────────
 import Login               from './pages/auth/Login'
+import Register            from './pages/auth/Register'
 
 // ── DOCTOR ───────────────────────────────────────────────────
 import DoctorDashboard     from './pages/doctor/Dashboard'
@@ -66,6 +67,7 @@ function App() {
                     {/* ── PUBLIC ──────────────────────────── */}
                     {/* No auth needed — anyone can visit     */}
                     <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
 
                     {/* Redirect root URL to login */}
                     <Route path="/" element={<Navigate to="/login" replace />} />

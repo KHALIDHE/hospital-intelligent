@@ -12,7 +12,7 @@
 import { useState, useEffect } from 'react'
 import Layout from '../../components/Layout'
 import api    from '../../api/axios'
-
+import StatCard from '../../components/StatCard'
 
 // ── BED STATUS CARD ───────────────────────────────────────────
 // Shows a single OR bed with color based on status
@@ -122,22 +122,10 @@ function NurseDashboard() {
 
             {/* Stats row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-400">Available Beds</p>
-                    <p className="text-2xl font-bold text-green-600 mt-1">{availableCount}</p>
-                </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-400">Occupied Beds</p>
-                    <p className="text-2xl font-bold text-red-500 mt-1">{occupiedCount}</p>
-                </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-400">Maintenance</p>
-                    <p className="text-2xl font-bold text-yellow-500 mt-1">{maintenanceCount}</p>
-                </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-400">Free Doctors</p>
-                    <p className="text-2xl font-bold text-blue-600 mt-1">{freeDoctors}</p>
-                </div>
+                <StatCard icon="🟢" label="Available Beds"  value={availableCount}   color="green"  />
+                <StatCard icon="🔴" label="Occupied Beds"   value={occupiedCount}    color="red"    />
+                <StatCard icon="🟡" label="Maintenance"     value={maintenanceCount} color="yellow" />
+                <StatCard icon="👨‍⚕️" label="Free Doctors"  value={freeDoctors}      color="blue"   />
             </div>
 
             {/* OR Beds grid */}
