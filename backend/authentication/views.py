@@ -130,7 +130,7 @@ class LoginView(APIView):
             value=access,
             httponly=True,
             secure=False,
-            samesite='None',
+             samesite='Lax',
             path='/',
             max_age=60 * 60,  # 1 hour
         )
@@ -189,6 +189,7 @@ class LogoutView(APIView):
         # path and samesite must match exactly how the cookie was set
         # After this, every request will fail authentication
         # because there is no token to read anymore
-        response.delete_cookie('access_token', path='/', samesite='None')
+        response.delete_cookie('access_token', path='/', samesite='Lax')  # ← change this
+
 
         return response
