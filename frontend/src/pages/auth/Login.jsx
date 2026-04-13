@@ -140,6 +140,7 @@ function Login() {
         e.preventDefault()
         setError('')
         setLoading(true)
+        localStorage.removeItem('access_token')  // ← ADD THIS LINE
 
         try {
             const res = await api.post('/auth/login/', { email, password, role })
