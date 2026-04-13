@@ -1,0 +1,147 @@
+# ============================================================
+# docker-compose.yml — Hôpital Intelligent
+# ============================================================
+# Runs the ENTIRE project with one command:
+#   docker-compose up --build
+#
+# Services:
+#   db        → PostgreSQL database
+#   backend   → Django REST API (port 8000)
+#   mcp       → AI MCP server / FastAPI (port 8001)
+#   ollama    → Local AI model Gemma3:4b (port 11434)
+#   frontend  → React + Vite (port 5173)
+#
+# First time setup:
+#   1. docker-compose up --build
+#   2. Wait for ollama to pull the model (few minutes)
+#   3. Open http://localhost:5173
+# ============================================================
+
+version: '3.9'
+
+services:
+
+  # ── PostgreSQL Database ─────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: hopital_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       hopital_db
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: KHALID1111
+    volumes:
+      # Data persists even after docker-compose down
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+  # ── Django Backend ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hopital_backend
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      # Django settings
+      SECRET_KEY:  django-insecure-hospital-intelligent-2026
+      DEBUG:       "True"
+      # Database — uses service name "db" as host
+      DB_NAME:     hopital_db
+      DB_USER:     postgres
+      DB_PASSWORD: KHALID1111
+      DB_HOST:     db
+      DB_PORT:     5432
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+  # ── MCP AI Server ───────────────────────────────────────────
+  mcp:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    container_name: hopital_mcp
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+    volumes:
+      - ./mcp-server:/app
+    ports:
+      - "8001:8001"
+    environment:
+      # Database — same creds, "db" as host
+      DB_NAME:     hopital_db
+      DB_USER:     postgres
+      DB_PASSWORD: KHALID1111
+      DB_HOST:     db
+      DB_PORT:     5432
+      # Ollama — uses service name "ollama" as host
+      OLLAMA_HOST:  http://ollama:11434
+      OLLAMA_MODEL: gemma3:4b
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+
+
+  # ── Ollama — Local AI Model ─────────────────────────────────
+  # Runs Gemma3:4b locally — no API key needed
+  # First run pulls the model automatically (~2GB download)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hopital_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      # Model files persist so you don't re-download every time
+      - ollama_data:/root/.ollama
+    # Pull gemma3:4b automatically on first start
+    # This runs in background while other services start
+    entrypoint: >
+      sh -c "ollama serve &
+             sleep 5 &&
+             ollama pull gemma3:4b &&
+             wait"
+
+
+  # ── React Frontend ──────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hopital_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      # Preserve node_modules inside container
+      - /app/node_modules
+    environment:
+      # Tell Vite to accept connections from outside container
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - backend
+
+
+# ── Named volumes — data persists between restarts ───────────
+volumes:
+  postgres_data:   # PostgreSQL data
+  ollama_data:     # Downloaded AI models

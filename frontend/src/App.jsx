@@ -38,6 +38,8 @@ import ORBeds              from './pages/nurse/ORBeds'
 import DoctorsAvailability from './pages/nurse/Doctors'
 import NurseChatbot        from './pages/nurse/Chatbot'
 import NurseProfile        from './pages/nurse/Profile'
+import RoomStatus          from './pages/nurse/RoomStatus'  
+
 
 // ── ADMIN ─────────────────────────────────────────────────────
 import AdminDashboard      from './pages/admin/Dashboard'
@@ -47,6 +49,7 @@ import AdminAlerts         from './pages/admin/Alerts'
 import AdminAudit          from './pages/admin/Audit'
 import AdminChatbot        from './pages/admin/Chatbot'
 import AdminProfile        from './pages/admin/Profile'
+import Hospital3D          from './pages/admin/Hospital3D' 
 
 // ── PATIENT ───────────────────────────────────────────────────
 import PatientDashboard    from './pages/patient/Dashboard'
@@ -118,6 +121,11 @@ function App() {
                             <ORBeds />
                         </ProtectedRoute>
                     }/>
+                    <Route path="/nurse/rooms" element={         
+                        <ProtectedRoute allowedRoles={['nurse']}>
+                            <RoomStatus />
+                        </ProtectedRoute>
+                    }/>
                     <Route path="/nurse/doctors" element={
                         <ProtectedRoute allowedRoles={['nurse']}>
                             <DoctorsAvailability />
@@ -169,6 +177,12 @@ function App() {
                     <Route path="/admin/profile" element={
                         <ProtectedRoute allowedRoles={['admin']}>
                             <AdminProfile />
+                        </ProtectedRoute>
+                    }/>
+                    {/* ← ADD THIS */}
+                    <Route path="/admin/hospital-3d" element={
+                        <ProtectedRoute allowedRoles={['admin']}>
+                            <Hospital3D />
                         </ProtectedRoute>
                     }/>
 

@@ -7,8 +7,11 @@
 // What this file does:
 //   1. Sets the base URL → so we never repeat http://localhost:8000/api
 //   2. Sets JSON headers → so Django knows we're sending JSON
-//   3. Sends cookies automatically → so JWT token is always included
-//   4. Handles 401 errors globally → redirects to login if token expires
+//   3. Sends cookies automatically → so JWT cookie is always included
+//   4. Saves token to localStorage after login → for Authorization header
+//   5. Sends token via Authorization header on every request → fallback
+//      for localhost where cross-origin cookies are blocked without HTTPS
+//   6. Handles 401 errors globally → redirects to login if token expires
 //
 // How to use it in any other file:
 //   import api from '../../api/axios'
@@ -33,11 +36,35 @@ const api = axios.create({
         'Content-Type': 'application/json',
     },
 
-    // CRITICAL: Send cookies with every request
-    // Without this line, the JWT token stored in the
-    // httpOnly cookie would NOT be sent to Django
-    // → Every request would return 401 Unauthorized
+    // Send cookies with every request
+    // This sends the httpOnly access_token cookie to Django
+    // In production (HTTPS) this is enough on its own
+    // In localhost (HTTP) cookies are blocked cross-origin → we also use header
     withCredentials: true,
+})
+
+
+// ── REQUEST INTERCEPTOR ──────────────────────────────────────
+// Runs automatically BEFORE every request is sent
+//
+// Why we need this:
+//   On localhost, samesite='None' cookies require HTTPS to be sent.
+//   Since we're on HTTP, the browser blocks the cookie.
+//   Solution: we also save the token in localStorage after login
+//   and attach it to every request as an Authorization header.
+//   Django's CookieJWTAuthentication reads cookie first, header second.
+api.interceptors.request.use((config) => {
+
+    // Get the token saved in localStorage (set after login below)
+    const token = localStorage.getItem('access_token')
+
+    if (token) {
+        // Attach token to Authorization header
+        // Django reads this in CookieJWTAuthentication as fallback
+        config.headers.Authorization = `Bearer ${token}`
+    }
+
+    return config
 })
 
 
@@ -46,15 +73,21 @@ const api = axios.create({
 // it reaches your component code
 //
 // Think of it as a filter that checks every response:
-//   Success (2xx) → pass it through normally
-//   401 error     → token expired → redirect to login
+//   Success (2xx) → save token if present, pass response through
+//   401 error     → token expired → clear token → redirect to login
 //   Other errors  → let the component handle it
 api.interceptors.response.use(
 
     // ── SUCCESS handler ───────────────────────────────────────
-    // Response came back fine → just return it as is
-    // Your component will receive it normally
     (response) => {
+
+        // If the response contains an access token (login response)
+        // save it to localStorage so the request interceptor above
+        // can attach it to all future requests via Authorization header
+        if (response.data?.access) {
+            localStorage.setItem('access_token', response.data.access)
+        }
+
         return response
     },
 
@@ -74,7 +107,8 @@ api.interceptors.response.use(
                                 || url.includes('/auth/me/')
 
             if (!isAuthEndpoint) {
-                // Token expired on a real page → send to login
+                // Token expired on a real page → clear stale token → send to login
+                localStorage.removeItem('access_token')
                 window.location.href = '/login'
             }
 
@@ -84,7 +118,6 @@ api.interceptors.response.use(
 
         // For all other errors (400, 403, 404, 500...)
         // We reject the promise so the component's catch block handles it
-        // Example: a 400 error on login will be caught in Login.jsx
         return Promise.reject(error)
     }
 )

@@ -12,6 +12,7 @@ from django.contrib.auth import authenticate      # Django built-in: checks emai
 from .serializers import LoginSerializer          # Our custom serializer (validates login input)
 from users.models import User                     # Our custom User model
 
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 # ============================================================
 # DOMAIN MAP — each role has a required email domain
@@ -36,10 +37,11 @@ DOMAIN_MAP = {
 #   3. Checks email + password exist in DB
 #   4. Checks role in DB matches selected role
 #   5. Generates JWT token
-#   6. Stores token in httpOnly cookie and returns user info
+#   6. Stores token in httpOnly cookie AND returns it in body
+#      (body needed for localhost dev where cookies are blocked cross-origin)
 # ============================================================
 class LoginView(APIView):
-
+    permission_classes = [AllowAny]
     def post(self, request):
         # ── STEP 1: Validate incoming request data ──────────────
         # request.data contains what React sent: { email, password, role }
@@ -94,7 +96,7 @@ class LoginView(APIView):
 
         # ── STEP 5: Generate JWT tokens ─────────────────────────
         # RefreshToken.for_user() creates 2 tokens:
-        #   - access token  → short lived (15 min), sent with every request
+        #   - access token  → short lived (1 hour), sent with every request
         #   - refresh token → long lived (7 days), used to get a new access token
         refresh = RefreshToken.for_user(user)
         access  = str(refresh.access_token)  # convert token object to string
@@ -102,9 +104,14 @@ class LoginView(APIView):
         # ── STEP 6: Build the response and set httpOnly cookie ──
         # We return basic user info in the JSON body
         # React will use 'role' to decide which dashboard to show
+        #
+        # We also return 'access' token in the body so axios.js can
+        # save it to localStorage and send it via Authorization header.
+        # This is needed on localhost where cross-origin cookies are blocked.
         response = Response({
             'message': 'Login successful',
-            'role': user.role,
+            'role':    user.role,
+            'access':  access,   # ← axios saves this to localStorage
             'user': {
                 'id':    user.id,
                 'email': user.email,
@@ -113,15 +120,19 @@ class LoginView(APIView):
         })
 
         # Store the JWT access token in an httpOnly cookie
-        # httponly=True  → JavaScript CANNOT read this cookie (protects against XSS attacks)
-        # secure=False   → set to True in production so cookie only sent over HTTPS
-        # samesite='Lax' → cookie sent on normal navigation but not on cross-site requests
+        # httponly=True    → JavaScript CANNOT read this cookie (protects against XSS)
+        # secure=False     → set to True in production (HTTPS only)
+        # samesite='None'  → allows cross-origin cookies (needed for localhost dev)
+        # path='/'         → cookie sent on ALL routes, not just /api/auth/
+        # max_age=3600     → cookie expires in 1 hour (matches ACCESS_TOKEN_LIFETIME)
         response.set_cookie(
             key='access_token',
             value=access,
             httponly=True,
-            secure=False,   # ← change to True in production
-            samesite='Lax',
+            secure=False,
+            samesite='None',
+            path='/',
+            max_age=60 * 60,  # 1 hour
         )
 
         return response
@@ -132,7 +143,7 @@ class LoginView(APIView):
 # Route  : GET /api/auth/me
 # Access : Protected (JWT token required)
 # What it does:
-#   - Reads the JWT token from the cookie
+#   - Reads the JWT token from the cookie (or Authorization header)
 #   - Extracts the user_id from the token
 #   - Fetches the user from DB
 #   - Returns their info to React
@@ -141,10 +152,11 @@ class LoginView(APIView):
 class MeView(APIView):
 
     # IsAuthenticated automatically:
-    #   1. Reads the JWT token from the cookie
-    #   2. Validates it (not expired, not tampered)
-    #   3. Attaches the user object to request.user
-    #   4. If token missing or invalid → returns 401 automatically
+    #   1. Calls CookieJWTAuthentication.authenticate()
+    #   2. Reads token from cookie or Authorization header
+    #   3. Validates it (not expired, not tampered)
+    #   4. Attaches the user object to request.user
+    #   5. If token missing or invalid → returns 401 automatically
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -165,6 +177,7 @@ class MeView(APIView):
 # Access : Public (no token check needed)
 # What it does:
 #   - Deletes the access_token cookie from the browser
+#   - React also clears localStorage (handled in axios.js)
 #   - User is now logged out — no token = no access
 # ============================================================
 class LogoutView(APIView):
@@ -173,8 +186,9 @@ class LogoutView(APIView):
         response = Response({'message': 'Logged out'})
 
         # Delete the cookie from the browser
+        # path and samesite must match exactly how the cookie was set
         # After this, every request will fail authentication
         # because there is no token to read anymore
-        response.delete_cookie('access_token')
+        response.delete_cookie('access_token', path='/', samesite='None')
 
         return response

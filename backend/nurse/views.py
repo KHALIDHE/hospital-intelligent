@@ -15,8 +15,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Nurse, ORBed
-from .serializers import NurseSerializer, ORBedSerializer
+from .models import Nurse, ORBed ,Room
+from .serializers import NurseSerializer, ORBedSerializer ,RoomSerializer
 from doctors.models import Doctor
 
 
@@ -280,3 +280,97 @@ class AllNursesView(APIView):
             'shift':         n.shift,
         } for n in nurses]
         return Response(data)
+    
+
+# ============================================================
+# ROOM LIST VIEW
+# Route  : GET /api/nurse/rooms/
+# Access : Nurse + Admin
+# Params : ?department=cardiologie  → filter by department
+#          (no param) → returns ALL rooms (used by admin 3D view)
+# ============================================================
+class RoomListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        # Both nurse and admin can access
+        # Nurse uses it filtered by department
+        # Admin uses it unfiltered to color the 3D building
+        if request.user.role not in ['nurse', 'admin']:
+            return Response(
+                {'error': 'Access denied'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # ── Optional department filter ─────────────────────────
+        # GET /api/nurse/rooms/?department=cardiologie
+        department = request.query_params.get('department', None)
+
+        if department:
+            # Nurse selected a specific department → filter
+            rooms = Room.objects.filter(department=department).order_by('room_number')
+        else:
+            # No filter → return all rooms (admin 3D view needs all)
+            rooms = Room.objects.all().order_by('department', 'room_number')
+
+        serializer = RoomSerializer(rooms, many=True)
+        return Response(serializer.data)
+
+
+# ============================================================
+# ROOM DETAIL VIEW
+# Route  : PATCH /api/nurse/rooms/<room_id>/
+# Access : Nurse only
+# Body   : { "status": "critical" }
+# What it does:
+#   - Nurse clicks a room card → picks a status → sends PATCH
+#   - Only 'status' changes — room_number/department/floor never change
+#   - Saves which nurse made the update via updated_by
+# ============================================================
+class RoomDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, room_id):
+
+        if request.user.role != 'nurse':
+            return Response(
+                {'error': 'Access denied — nurses only'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # ── Find the room ──────────────────────────────────────
+        try:
+            room = Room.objects.get(id=room_id)
+        except Room.DoesNotExist:
+            return Response(
+                {'error': 'Room not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # ── Validate status value ──────────────────────────────
+        # Only allow the 4 known statuses — reject anything else
+        new_status = request.data.get('status')
+        valid_statuses = ['empty', 'stable', 'critical', 'maintenance']
+
+        if new_status and new_status not in valid_statuses:
+            return Response(
+                {'error': f'Invalid status. Must be one of: {valid_statuses}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ── Inject updated_by before saving ───────────────────
+        # Force the logged-in user as the one who made the change
+        # Even if frontend sends a different user ID, we ignore it
+        data = request.data.copy()
+        data['updated_by'] = request.user.id
+
+        # ── Save with partial update ───────────────────────────
+        # partial=True → only update what's sent, leave the rest untouched
+        serializer = RoomSerializer(room, data=data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

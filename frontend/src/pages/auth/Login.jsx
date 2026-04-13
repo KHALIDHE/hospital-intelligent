@@ -101,7 +101,7 @@ const ROLE_ICONS = {
 const DASHBOARD_MAP = {
     doctor:  '/dashboard/doctor',
     nurse:   '/dashboard/nurse',
-    admin:   '/dashboard/admin',
+    admin:   '/admin/hospital-3d',
     patient: '/dashboard/patient',
 }
 

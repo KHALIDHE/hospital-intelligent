@@ -13,6 +13,18 @@
 #   appname_modelname → e.g. patients_patient, doctors_doctor
 # ============================================================
 
+# ============================================================
+# mcp-server/database.py
+# ============================================================
+# Database connection using environment variables.
+# Works both locally AND inside Docker.
+#
+# Locally:    DB_HOST=127.0.0.1
+# In Docker:  DB_HOST=db  (service name in docker-compose)
+# ============================================================
+
+
+
 import psycopg2
 import psycopg2.extras  # ← lets us get results as dicts
 import os
@@ -26,13 +38,20 @@ load_dotenv()
 # We use RealDictCursor so rows come back as dicts not tuples
 # e.g. { 'full_name': 'Ahmed', 'status': 'critical' }
 # instead of ('Ahmed', 'critical')
+load_dotenv()
+ 
 def get_connection():
+    """
+    Returns a PostgreSQL connection.
+    Reads credentials from environment variables.
+    Works locally and inside Docker without any code change.
+    """
     return psycopg2.connect(
-        host     = '127.0.0.1',
-        port     = 5432,
-        dbname   = 'hopital_db',
-        user     = 'postgres',
-        password = 'KHALID1111',
+        dbname   = os.getenv('DB_NAME',     'hopital_db'),
+        user     = os.getenv('DB_USER',     'postgres'),
+        password = os.getenv('DB_PASSWORD', 'KHALID1111'),
+        host     = os.getenv('DB_HOST',     '127.0.0.1'),  # 'db' in Docker
+        port     = os.getenv('DB_PORT',     '5432'),
     )
 
 # ── HELPER: run a query and return results as list of dicts ───
