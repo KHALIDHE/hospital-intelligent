@@ -31,7 +31,7 @@ from .models import ChatMessage
 # ── URL of your MCP server (change when ready) ───────────────
 # When MCP is running → set this to http://localhost:8001/chat
 # For now → None means use mock responses
-CHATBOT_API_URL = "http://localhost:8001/chat"  # ← change to your MCP URL when ready
+CHATBOT_API_URL = "http://mcp:8001/chat"  # ← change to your MCP URL when ready
 
 
 # ============================================================

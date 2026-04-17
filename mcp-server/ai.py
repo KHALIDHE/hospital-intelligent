@@ -25,6 +25,9 @@ load_dotenv()
 
 MODEL = os.getenv('OLLAMA_MODEL', 'gemma3:4b')
 
+# ← ADD THIS — tells ollama library to use Docker service name
+client = ollama.Client(host=os.getenv('OLLAMA_HOST', 'http://ollama:11434'))
+
 # ── Casual messages that need NO tools ───────────────────────
 # If message matches these → skip tool selection entirely
 # Answer directly as a helpful assistant
@@ -58,7 +61,7 @@ def get_casual_reply(message: str, role: str) -> str:
     }
 
     try:
-        response = ollama.chat(
+        response = client.chat(
             model    = MODEL,
             messages = [{
                 "role":    "user",
@@ -153,7 +156,7 @@ def ask_gemma(user_message: str, role: str, user_id: int) -> str:
     )
 
     try:
-        round1 = ollama.chat(
+        round1 = client.chat(
             model    = MODEL,
             messages = [{"role": "user", "content": tool_selection_prompt}],
             options  = {'temperature': 0.1, 'num_predict': 100}
@@ -170,7 +173,7 @@ def ask_gemma(user_message: str, role: str, user_id: int) -> str:
     if not tool_decision or 'tool' not in tool_decision:
         print("[MCP] No tool selected — answering directly")
         try:
-            direct = ollama.chat(
+            direct =client.chat (
                 model    = MODEL,
                 messages = [{
                     "role":    "user",
@@ -218,7 +221,7 @@ Rules:
 - Answer in the same language the user used"""
 
     try:
-        round3 = ollama.chat(
+        round3 = client.chat(
             model    = MODEL,
             messages = [{"role": "user", "content": final_prompt}],
             options  = {'temperature': 0.4, 'num_predict': 300}
