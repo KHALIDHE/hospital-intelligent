@@ -23,7 +23,7 @@ services:
 
   # ── PostgreSQL Database ─────────────────────────────────────
   db:
-    image: postgres:15-alpine
+    image: postgres:17-alpine
     container_name: hopital_db
     restart: unless-stopped
     environment:
@@ -105,27 +105,30 @@ services:
   # Runs Gemma3:4b locally — no API key needed
   # First run pulls the model automatically (~2GB download)
   ollama:
-      image: ollama/ollama:latest
-      container_name: hopital_ollama
-      restart: unless-stopped
-      ports:
-        - "11434:11434"
-      volumes:
-        - ollama_data:/root/.ollama
-      deploy:
-        resources:
-          reservations:
-            devices:
-              - driver: nvidia
-                count: 1
-                #capabilities: [gpu]   # ← this gives GPU access to container
-      entrypoint: >
-        sh -c "ollama serve &
-              sleep 5 &&
-              ollama pull gemma3:4b &&
-              wait"
-
-
+    image: ollama/ollama:latest
+    container_name: hopital_ollama
+    restart: unless-stopped
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    ports:
+      - "11434:11434"
+    volumes:
+      # Model files persist so you don't re-download every time
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    entrypoint: >
+      sh -c "ollama serve &
+            sleep 15 &&
+            ollama pull gemma3:4b &&
+            tail -f /dev/null"
   # ── React Frontend ──────────────────────────────────────────
   frontend:
     build:
