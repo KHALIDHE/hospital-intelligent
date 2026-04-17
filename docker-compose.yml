@@ -33,6 +33,7 @@ services:
     volumes:
       # Data persists even after docker-compose down
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/backup.sql:/docker-entrypoint-initdb.d/backup.sql  # ← add this line
     ports:
       - "5432:5432"
     healthcheck:
